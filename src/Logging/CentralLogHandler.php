@@ -11,23 +11,44 @@ use Webimpian\LogCentral\Support\TraceId;
 
 class CentralLogHandler extends AbstractProcessingHandler
 {
-    private const int MAX_BUFFER = 200;
+    private const MAX_BUFFER = 200;
 
     /** @var list<array<string, mixed>> */
     private static array $buffer = [];
 
     private static bool $flushRegistered = false;
 
-    protected function write(LogRecord $record): void
+    /**
+     * The record is a LogRecord on Monolog 3 (Laravel 10+) and a plain array
+     * on Monolog 2 (Laravel 8/9); the parameter is left untyped so the
+     * override stays compatible with both parent signatures.
+     *
+     * @param  \Monolog\LogRecord|array<string, mixed>  $record
+     */
+    protected function write($record): void
     {
+        if ($record instanceof LogRecord) {
+            $datetime = $record->datetime;
+            $channel = $record->channel;
+            $level = $record->level->getName();
+            $message = $record->message;
+            $context = $record->context;
+        } else {
+            $datetime = $record['datetime'];
+            $channel = $record['channel'];
+            $level = $record['level_name'];
+            $message = $record['message'];
+            $context = $record['context'] ?? [];
+        }
+
         self::$buffer[] = [
-            'timestamp' => $record->datetime->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s.v'),
+            'timestamp' => $datetime->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s.v'),
             'app' => ErrorPayload::appSlug(),
             'environment' => (string) app()->environment(),
-            'channel' => $record->channel,
-            'level' => strtolower($record->level->getName()),
-            'message' => $record->message,
-            'context' => ErrorPayload::jsonObject(Scrubber::scrub($record->context)),
+            'channel' => $channel,
+            'level' => strtolower((string) $level),
+            'message' => $message,
+            'context' => ErrorPayload::jsonObject(Scrubber::scrub((array) $context)),
             'hostname' => gethostname() ?: '',
             'trace_id' => TraceId::current(),
         ];

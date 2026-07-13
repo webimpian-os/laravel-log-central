@@ -16,8 +16,8 @@ Ship exceptions, log entries, and API request metrics from any Laravel applicati
 
 ## Requirements
 
-- PHP 8.2 or higher
-- Laravel 11, 12, or 13
+- PHP 8.1 or higher
+- Laravel 8, 9, 10, 11, 12, or 13
 - A running queue worker (Redis / Horizon recommended)
 - A Log Central project key — create an app on the [dashboard](https://log.dev-aplikasiniaga.com) to obtain one
 

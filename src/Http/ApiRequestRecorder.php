@@ -18,11 +18,11 @@ use Webimpian\LogCentral\Support\TraceId;
  */
 class ApiRequestRecorder
 {
-    private const int MAX_BUFFER = 200;
+    private const MAX_BUFFER = 200;
 
-    private const int MAX_RESPONSE_BYTES = 4096;
+    private const MAX_RESPONSE_BYTES = 4096;
 
-    private const int MAX_AGENT_BYTES = 512;
+    private const MAX_AGENT_BYTES = 512;
 
     /** @var list<array<string, mixed>> */
     private static array $buffer = [];
@@ -198,11 +198,15 @@ class ApiRequestRecorder
 
         $content = (string) $response->getContent();
 
-        if ($content === '' || ! json_validate($content)) {
+        if ($content === '') {
             return '';
         }
 
         $decoded = json_decode($content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return '';
+        }
 
         if (is_array($decoded)) {
             $content = json_encode(Scrubber::scrub($decoded), JSON_UNESCAPED_UNICODE) ?: '';
