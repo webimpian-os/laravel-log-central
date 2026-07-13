@@ -3,6 +3,7 @@
 use Illuminate\Contracts\Queue\Job;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Webimpian\LogCentral\Jobs\ShipApiRequestBatch;
 use Webimpian\LogCentral\Jobs\ShipErrorToCentral;
 use Webimpian\LogCentral\Jobs\ShipLogBatch;
 
@@ -64,3 +65,31 @@ it('never throws on a connection failure', function () {
 
     (new ShipLogBatch([['message' => 'hello']]))->handle();
 })->throwsNoExceptions();
+
+it('fails the job when the server rejects the request, so misconfiguration is visible', function () {
+    Http::preventStrayRequests();
+    Http::fake(['*' => Http::response('unauthorized', 401)]);
+
+    $queueJob = Mockery::mock(Job::class);
+    $queueJob->shouldReceive('fail')->once();
+    $queueJob->shouldReceive('release')->never();
+
+    $job = new ShipLogBatch([['message' => 'hello']]);
+    $job->setJob($queueJob);
+    $job->handle();
+});
+
+it('fails the job on a non-transient error instead of dropping it in silence', function () {
+    // Mirrors the Laravel 8 connectTimeout() regression: a BadMethodCallException
+    // escapes the send, is not a network blip, and must surface rather than retry.
+    Http::preventStrayRequests();
+    Http::fake(fn () => throw new BadMethodCallException('Method connectTimeout does not exist.'));
+
+    $queueJob = Mockery::mock(Job::class);
+    $queueJob->shouldReceive('fail')->once();
+    $queueJob->shouldReceive('release')->never();
+
+    $job = new ShipApiRequestBatch([['route' => '/orders']]);
+    $job->setJob($queueJob);
+    $job->handle();
+});
