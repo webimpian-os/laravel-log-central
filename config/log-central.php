@@ -27,7 +27,7 @@ return [
      * "*" for every channel defined in config/logging.php, or empty to ship none
      * (exceptions are still captured).
      */
-    'channels' => env('CENTRAL_LOG_CHANNELS', ''),
+    'channels' => env('CENTRAL_LOG_CHANNELS', '*'),
 
     /*
      * Request paths whose API traffic (method, route, status, duration,

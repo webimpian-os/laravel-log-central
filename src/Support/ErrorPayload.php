@@ -7,6 +7,10 @@ use Throwable;
 
 class ErrorPayload
 {
+    private const MAX_FIELD_BYTES = 262144;
+
+    private const MAX_PREVIEW_BYTES = 16384;
+
     /**
      * Builds one /api/errors entry. Must run synchronously (request context
      * is gone by the time a queued job executes).
@@ -43,7 +47,7 @@ class ErrorPayload
             'ip' => (string) ($request?->ip() ?? ''),
             'user_agent' => (string) ($request?->userAgent() ?? ''),
             'referrer' => (string) ($request?->header('referer') ?? ''),
-            'input' => self::jsonObject(Scrubber::scrub($request?->input() ?? [])),
+            'input' => self::boundedJsonObject(Scrubber::scrub($request?->input() ?? [])),
             'hostname' => gethostname() ?: '',
             'entrypoint' => self::entrypoint(),
         ];
@@ -55,6 +59,26 @@ class ErrorPayload
     public static function jsonObject(array $data): string
     {
         return json_encode($data === [] ? new \stdClass : $data) ?: '{}';
+    }
+
+    /**
+     * Caps oversized payloads to a marker with a start-of-payload preview.
+     *
+     * @param  array<array-key, mixed>  $data
+     */
+    public static function boundedJsonObject(array $data): string
+    {
+        $json = self::jsonObject($data);
+
+        if (strlen($json) <= self::MAX_FIELD_BYTES) {
+            return $json;
+        }
+
+        return self::jsonObject([
+            '_truncated' => true,
+            '_bytes' => strlen($json),
+            '_preview' => mb_strcut($json, 0, self::MAX_PREVIEW_BYTES, 'UTF-8'),
+        ]);
     }
 
     public static function appSlug(): string

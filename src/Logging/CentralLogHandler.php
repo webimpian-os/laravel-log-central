@@ -48,7 +48,7 @@ class CentralLogHandler extends AbstractProcessingHandler
             'channel' => $channel,
             'level' => strtolower((string) $level),
             'message' => $message,
-            'context' => ErrorPayload::jsonObject(Scrubber::scrub((array) $context)),
+            'context' => ErrorPayload::boundedJsonObject(Scrubber::scrub((array) $context)),
             'hostname' => gethostname() ?: '',
             'trace_id' => TraceId::current(),
         ];
