@@ -8,6 +8,7 @@ use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Monolog\Handler\NullHandler;
 use Webimpian\LogCentral\Http\ApiRequestRecorder;
 use Webimpian\LogCentral\Listeners\ShipExceptionListener;
 use Webimpian\LogCentral\Logging\CentralLogHandler;
@@ -74,7 +75,7 @@ class LogCentralServiceProvider extends ServiceProvider
      */
     private function isDiscardChannel(string $name, array $channel): bool
     {
-        return $name === 'null' || ($channel['handler'] ?? null) === \Monolog\Handler\NullHandler::class;
+        return $name === 'null' || ($channel['handler'] ?? null) === NullHandler::class;
     }
 
     private function wrapChannels(): void
@@ -99,6 +100,11 @@ class LogCentralServiceProvider extends ServiceProvider
             $channel = $channels[$name] ?? null;
 
             if ($channel === null || in_array($name, ['central', 'emergency'], true) || ($channel['driver'] ?? null) === 'stack') {
+                continue;
+            }
+
+            // Skip our own twins so a config:cache re-wrap can't nest a second central.
+            if (str_ends_with($name, '_local') && isset($channels[substr($name, 0, -6)])) {
                 continue;
             }
 
