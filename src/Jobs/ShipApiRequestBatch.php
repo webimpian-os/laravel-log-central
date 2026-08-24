@@ -11,10 +11,16 @@ class ShipApiRequestBatch implements ShouldQueue
 {
     use InteractsWithQueue, Queueable, ShipsToLogCentral;
 
+    /** @var list<array<string, mixed>> */
+    public array $rows;
+
     /**
      * @param  list<array<string, mixed>>  $rows
      */
-    public function __construct(public array $rows) {}
+    public function __construct(array $rows)
+    {
+        $this->rows = $rows;
+    }
 
     public function handle(): void
     {

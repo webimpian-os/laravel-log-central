@@ -23,7 +23,7 @@ class CentralLogHandler extends AbstractProcessingHandler
      * on Monolog 2 (Laravel 8/9); the parameter is left untyped so the
      * override stays compatible with both parent signatures.
      *
-     * @param  \Monolog\LogRecord|array<string, mixed>  $record
+     * @param  LogRecord|array<string, mixed>  $record
      */
     protected function write($record): void
     {
@@ -71,7 +71,7 @@ class CentralLogHandler extends AbstractProcessingHandler
 
         rescue(function () use ($rows) {
             dispatch(new ShipLogBatch($rows))->onQueue(config('log-central.queue'));
-        }, report: false);
+        }, null, false);
     }
 
     private function registerFlush(): void

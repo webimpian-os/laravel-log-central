@@ -70,11 +70,11 @@ class ApiRequestRecorder
                 'app' => ErrorPayload::appSlug(),
                 'environment' => (string) app()->environment(),
                 'method' => $request->method(),
-                'route' => $request->route()?->uri() ?? $request->path(),
+                'route' => optional($request->route())->uri() ?? $request->path(),
                 'path' => $request->path(),
                 'status' => $response->getStatusCode(),
                 'duration_ms' => $this->durationMs($request),
-                'user_id' => (string) ($request->user()?->getAuthIdentifier() ?? ''),
+                'user_id' => (string) (optional($request->user())->getAuthIdentifier() ?? ''),
                 'user' => $this->userObject($request),
                 'ip' => (string) $request->ip(),
                 'hostname' => gethostname() ?: '',
@@ -94,7 +94,7 @@ class ApiRequestRecorder
             }
 
             self::registerFlush();
-        }, report: false);
+        }, null, false);
     }
 
     public static function flush(): void
@@ -108,7 +108,7 @@ class ApiRequestRecorder
 
         rescue(function () use ($rows) {
             dispatch(new ShipApiRequestBatch($rows))->onQueue(config('log-central.queue'));
-        }, report: false);
+        }, null, false);
     }
 
     private function shouldRecord(Request $request): bool
@@ -117,7 +117,7 @@ class ApiRequestRecorder
             return false;
         }
 
-        $patterns = array_filter(array_map(trim(...), explode(',', (string) config('log-central.api_paths'))));
+        $patterns = array_filter(array_map('trim', explode(',', (string) config('log-central.api_paths'))));
 
         return $patterns !== [] && $request->is(...$patterns);
     }
@@ -140,7 +140,7 @@ class ApiRequestRecorder
         $user = rescue(fn () => $request->user(), null, false);
 
         return ErrorPayload::jsonObject(array_filter([
-            'id' => $user?->getAuthIdentifier(),
+            'id' => optional($user)->getAuthIdentifier(),
             'name' => $user->name ?? null,
             'email' => $user->email ?? null,
         ], fn ($value) => $value !== null));

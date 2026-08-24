@@ -20,7 +20,7 @@ class ShipExceptionListener
         rescue(function () use ($exception) {
             dispatch(new ShipErrorToCentral(ErrorPayload::fromThrowable($exception)))
                 ->onQueue(config('log-central.queue'));
-        }, report: false);
+        }, null, false);
     }
 
     /**

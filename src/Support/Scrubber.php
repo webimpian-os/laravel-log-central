@@ -10,7 +10,7 @@ class Scrubber
      */
     public static function scrub(array $data): array
     {
-        $sensitive = array_map(strtolower(...), config('log-central.scrub', []));
+        $sensitive = array_map('strtolower', config('log-central.scrub', []));
 
         $scrubbed = [];
 

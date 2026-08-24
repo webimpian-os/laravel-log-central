@@ -11,10 +11,16 @@ class ShipErrorToCentral implements ShouldQueue
 {
     use InteractsWithQueue, Queueable, ShipsToLogCentral;
 
+    /** @var array<string, mixed> */
+    public array $payload;
+
     /**
      * @param  array<string, mixed>  $payload
      */
-    public function __construct(public array $payload) {}
+    public function __construct(array $payload)
+    {
+        $this->payload = $payload;
+    }
 
     public function handle(): void
     {

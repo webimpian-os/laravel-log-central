@@ -94,7 +94,7 @@ class LogCentralServiceProvider extends ServiceProvider
                 fn ($channel, $name): bool => ! $this->isDiscardChannel((string) $name, (array) $channel),
                 ARRAY_FILTER_USE_BOTH,
             ))
-            : array_filter(array_map(trim(...), explode(',', $configured)));
+            : array_filter(array_map('trim', explode(',', $configured)));
 
         foreach ($names as $name) {
             $channel = $channels[$name] ?? null;

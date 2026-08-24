@@ -22,7 +22,7 @@ class ErrorPayload
         $request = app()->runningInConsole() ? null : request();
 
         $user = rescue(fn () => auth()->user(), null, false);
-        $userId = $user?->getAuthIdentifier();
+        $userId = optional($user)->getAuthIdentifier();
 
         $userDetails = $user === null ? [] : array_filter([
             'id' => $userId,
@@ -32,22 +32,22 @@ class ErrorPayload
 
         return [
             'timestamp' => now('UTC')->format('Y-m-d H:i:s.v'),
-            'fingerprint' => md5($exception::class.'|'.$exception->getFile().'|'.$exception->getLine()),
+            'fingerprint' => md5(get_class($exception).'|'.$exception->getFile().'|'.$exception->getLine()),
             'app' => self::appSlug(),
             'environment' => (string) app()->environment(),
-            'exception' => $exception::class,
+            'exception' => get_class($exception),
             'message' => $exception->getMessage(),
             'file' => $exception->getFile(),
             'line' => $exception->getLine(),
             'trace' => $exception->getTraceAsString(),
-            'url' => $request?->fullUrl() ?? '',
-            'method' => $request?->method() ?? 'CLI',
+            'url' => optional($request)->fullUrl() ?? '',
+            'method' => optional($request)->method() ?? 'CLI',
             'user_id' => is_numeric($userId) ? (int) $userId : 0,
             'user' => self::jsonObject($userDetails),
-            'ip' => (string) ($request?->ip() ?? ''),
-            'user_agent' => (string) ($request?->userAgent() ?? ''),
-            'referrer' => (string) ($request?->header('referer') ?? ''),
-            'input' => self::boundedJsonObject(Scrubber::scrub($request?->input() ?? [])),
+            'ip' => (string) (optional($request)->ip() ?? ''),
+            'user_agent' => (string) (optional($request)->userAgent() ?? ''),
+            'referrer' => (string) (optional($request)->header('referer') ?? ''),
+            'input' => self::boundedJsonObject(Scrubber::scrub(optional($request)->input() ?? [])),
             'hostname' => gethostname() ?: '',
             'entrypoint' => self::entrypoint(),
         ];
