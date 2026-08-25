@@ -29,6 +29,10 @@ jobs:
 
       - name: Install dependencies
         run: |
+          # The package supports Laravel versions old enough to carry unpatched
+          # advisories, which Composer refuses to install by default. Nothing is
+          # deployed from here, so the matrix opts out to test the range it claims.
+          composer config --no-plugins policy.advisories.block false
           composer require "illuminate/support:${{ matrix.laravel }}" --no-interaction --no-update
           composer update --prefer-dist --no-interaction
 
