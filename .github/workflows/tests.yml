@@ -1,0 +1,103 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { php: '8.2', laravel: '^11.0' }
+          - { php: '8.3', laravel: '^12.0' }
+          - { php: '8.4', laravel: '^13.0' }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Install dependencies
+        run: |
+          composer require "illuminate/support:${{ matrix.laravel }}" --no-interaction --no-update
+          composer update --prefer-dist --no-interaction
+
+      - run: vendor/bin/pest
+
+  # The package floor is PHP 7.4. This catches syntax that only parses on 8.x
+  # (nullsafe, promoted properties, named arguments, enums, first-class
+  # callables) before it can reach a release.
+  php-floor:
+    name: PHP 7.4 syntax floor
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: Lint every shipped file under PHP 7.4
+        run: find src config -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Reject PHP 8-only syntax
+        run: php .github/scripts/php-floor-check.php src config
+
+  # Laravel 6 has no HTTP client, so shipping takes the Guzzle fallback, and it
+  # permits Monolog 1, whose record datetime is mutable. Neither path exists on
+  # a modern install, so it is exercised against a real Laravel 6 project.
+  laravel6:
+    name: PHP 7.4 · Laravel 6 · Monolog 1
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: package
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: Build a Laravel 6 project around the package
+        run: |
+          mkdir -p legacy/tests
+          cp package/tests/LegacyLaravelTest.php legacy/tests/
+          cat > legacy/composer.json <<'JSON'
+          {
+              "name": "log-central/legacy-check",
+              "version": "1.0.0",
+              "repositories": [
+                  { "type": "path", "url": "../package", "options": { "symlink": true } }
+              ],
+              "require": {
+                  "laravel/framework": "^6.0",
+                  "monolog/monolog": "^1.12",
+                  "guzzlehttp/guzzle": "^6.3|^7.0",
+                  "webimpian/laravel-log-central": "*"
+              },
+              "require-dev": { "orchestra/testbench": "^4.0" },
+              "autoload-dev": { "psr-4": { "Webimpian\\LogCentral\\Tests\\": "tests/" } },
+              "config": { "policy": { "advisories": { "block": false } } },
+              "minimum-stability": "dev",
+              "prefer-stable": true
+          }
+          JSON
+          cd legacy && composer update --prefer-dist --no-interaction
+
+      - name: Run the Laravel 6 regression test
+        working-directory: legacy
+        run: vendor/bin/phpunit tests --testdox

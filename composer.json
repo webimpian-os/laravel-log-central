@@ -1,7 +1,12 @@
 {
     "name": "webimpian/laravel-log-central",
     "description": "Ship logs and exceptions from a Laravel app to a Log Central server.",
-    "keywords": ["laravel", "logging", "error-tracking", "log-central"],
+    "keywords": [
+        "laravel",
+        "logging",
+        "error-tracking",
+        "log-central"
+    ],
     "license": "MIT",
     "authors": [
         {
@@ -40,7 +45,8 @@
         }
     },
     "scripts": {
-        "test": "vendor/bin/pest"
+        "test": "vendor/bin/pest",
+        "php-floor": "@php .github/scripts/php-floor-check.php src config"
     },
     "config": {
         "sort-packages": true,
