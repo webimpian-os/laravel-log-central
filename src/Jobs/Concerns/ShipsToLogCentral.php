@@ -2,10 +2,13 @@
 
 namespace Webimpian\LogCentral\Jobs\Concerns;
 
+use GuzzleHttp\Client as GuzzleClient;
+use GuzzleHttp\Exception\BadResponseException as GuzzleResponseException;
+use GuzzleHttp\Exception\ConnectException as GuzzleConnectException;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 use Throwable;
 
 trait ShipsToLogCentral
@@ -26,9 +29,7 @@ trait ShipsToLogCentral
     protected function shipTo(string $path, array $payload): void
     {
         try {
-            $this->centralRequest()
-                ->post(rtrim((string) config('log-central.url'), '/').'/'.$path, $payload)
-                ->throw();
+            $this->post(rtrim((string) config('log-central.url'), '/').'/'.$path, $payload);
         } catch (Throwable $e) {
             if ($this->isTransient($e)) {
                 $this->retryOrDrop();
@@ -40,7 +41,28 @@ trait ShipsToLogCentral
         }
     }
 
-    private function centralRequest(): PendingRequest
+    /**
+     * @param  array<int|string, mixed>  $payload
+     */
+    private function post(string $url, array $payload): void
+    {
+        $this->hasLaravelHttpClient()
+            ? $this->postWithHttpClient($url, $payload)
+            : $this->postWithGuzzle($url, $payload);
+    }
+
+    /**
+     * Laravel's HTTP client only exists from 7.0; Laravel 6 falls back to Guzzle.
+     */
+    protected function hasLaravelHttpClient(): bool
+    {
+        return class_exists(Http::class);
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $payload
+     */
+    private function postWithHttpClient(string $url, array $payload): void
     {
         $request = Http::withToken(config('log-central.token'))
             ->withOptions(['verify' => (bool) config('log-central.verify_ssl', true)])
@@ -51,23 +73,64 @@ trait ShipsToLogCentral
             $request->connectTimeout(5);
         }
 
-        return $request;
+        $request->post($url, $payload)->throw();
+    }
+
+    /**
+     * `http_errors` keeps Guzzle throwing on 4xx/5xx so this path fails the same
+     * way ->throw() does on the Laravel client, and isTransient() can treat both.
+     *
+     * @param  array<int|string, mixed>  $payload
+     */
+    private function postWithGuzzle(string $url, array $payload): void
+    {
+        if (! class_exists(GuzzleClient::class)) {
+            throw new RuntimeException(
+                'Log Central needs guzzlehttp/guzzle to ship telemetry on Laravel 6, which has no HTTP client of its own. Run: composer require guzzlehttp/guzzle'
+            );
+        }
+
+        $this->guzzleClient()->request('POST', $url, [
+            'json' => $payload,
+            'headers' => [
+                'Authorization' => 'Bearer '.config('log-central.token'),
+                'Accept' => 'application/json',
+            ],
+            'verify' => (bool) config('log-central.verify_ssl', true),
+            'timeout' => 10,
+            'connect_timeout' => 5,
+            'http_errors' => true,
+        ]);
+    }
+
+    protected function guzzleClient(): GuzzleClient
+    {
+        return new GuzzleClient;
     }
 
     private function isTransient(Throwable $e): bool
     {
-        if ($e instanceof ConnectionException) {
+        if ($e instanceof ConnectionException || $e instanceof GuzzleConnectException) {
             return true;
         }
 
-        if ($e instanceof RequestException) {
-            $status = (int) $e->response->status();
+        $status = $this->statusFrom($e);
 
-            // 5xx and rate-limit statuses can clear on their own; a 4xx won't.
-            return $status >= 500 || in_array($status, [408, 429], true);
+        // 5xx and rate-limit statuses can clear on their own; a 4xx won't.
+        return $status !== null && ($status >= 500 || in_array($status, [408, 429], true));
+    }
+
+    private function statusFrom(Throwable $e): ?int
+    {
+        if ($e instanceof RequestException) {
+            return (int) $e->response->status();
         }
 
-        return false;
+        if ($e instanceof GuzzleResponseException) {
+            return $e->getResponse()->getStatusCode();
+        }
+
+        return null;
     }
 
     private function retryOrDrop(): void

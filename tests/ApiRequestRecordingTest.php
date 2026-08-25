@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Auth\GenericUser;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
@@ -78,7 +79,7 @@ it('captures request flow metrics', function () {
 it('captures the authenticated user name and email', function () {
     Queue::fake();
 
-    $user = new Illuminate\Auth\GenericUser(['id' => 7, 'name' => 'Jane Doe', 'email' => 'jane@example.com']);
+    $user = new GenericUser(['id' => 7, 'name' => 'Jane Doe', 'email' => 'jane@example.com']);
 
     Route::get('api/me', fn () => response()->json(['ok' => true]));
 

@@ -17,7 +17,8 @@ Ship exceptions, log entries, and API request metrics from any Laravel applicati
 ## Requirements
 
 - PHP 7.4 or higher
-- Laravel 8, 9, 10, 11, 12, or 13
+- Laravel 6, 7, 8, 9, 10, 11, 12, or 13
+- `guzzlehttp/guzzle` on Laravel 6 only, which ships no HTTP client of its own
 - A running queue worker (Redis / Horizon recommended)
 - A Log Central project key — create an app on the [dashboard](https://log.dev-aplikasiniaga.com) to obtain one
 

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Contracts\Queue\Job;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Webimpian\LogCentral\Jobs\ShipApiRequestBatch;
@@ -61,7 +62,7 @@ it('drops the batch without throwing once retries are exhausted', function () {
 
 it('never throws on a connection failure', function () {
     Http::preventStrayRequests();
-    Http::fake(fn () => throw new Illuminate\Http\Client\ConnectionException('Resolving timed out'));
+    Http::fake(fn () => throw new ConnectionException('Resolving timed out'));
 
     (new ShipLogBatch([['message' => 'hello']]))->handle();
 })->throwsNoExceptions();

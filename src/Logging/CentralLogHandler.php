@@ -34,7 +34,10 @@ class CentralLogHandler extends AbstractProcessingHandler
             $message = $record->message;
             $context = $record->context;
         } else {
-            $datetime = $record['datetime'];
+            // Monolog 1 (Laravel 6) hands over a mutable DateTime shared with every
+            // other handler in the stack; clone it so shifting to UTC below cannot
+            // rewrite the timestamp their own output is about to print.
+            $datetime = clone $record['datetime'];
             $channel = $record['channel'];
             $level = $record['level_name'];
             $message = $record['message'];
