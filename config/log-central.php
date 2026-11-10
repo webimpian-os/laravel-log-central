@@ -57,6 +57,8 @@ return [
      */
     'queue' => env('CENTRAL_LOG_QUEUE'),
 
+    'packages' => env('CENTRAL_LOG_PACKAGES', true),
+
     /*
      * Disable only for local/self-signed Log Central servers.
      */

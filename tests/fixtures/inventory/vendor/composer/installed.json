@@ -1,0 +1,10 @@
+{
+    "packages": [
+        {"name": "laravel/framework", "version": "v11.9.2", "type": "library"},
+        {"name": "guzzlehttp/guzzle", "version": "7.9.2"},
+        {"name": "pestphp/pest", "version": "v3.0.0"},
+        {"name": "broken/no-version"}
+    ],
+    "dev": true,
+    "dev-package-names": ["pestphp/pest"]
+}

@@ -2,6 +2,7 @@
 
 namespace Webimpian\LogCentral;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Log\Events\MessageLogged;
@@ -9,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Monolog\Handler\NullHandler;
+use Webimpian\LogCentral\Console\ShipPackagesCommand;
 use Webimpian\LogCentral\Http\ApiRequestRecorder;
 use Webimpian\LogCentral\Listeners\ShipExceptionListener;
 use Webimpian\LogCentral\Logging\CentralLogHandler;
@@ -33,8 +35,25 @@ class LogCentralServiceProvider extends ServiceProvider
         $this->registerCentralChannel();
         $this->wrapChannels();
         $this->registerApiRecorder();
+        $this->registerPackageReport();
 
         Event::listen(MessageLogged::class, ShipExceptionListener::class);
+    }
+
+    private function registerPackageReport(): void
+    {
+        if (! $this->app->runningInConsole() || ! config('log-central.packages')) {
+            return;
+        }
+
+        $this->commands([ShipPackagesCommand::class]);
+
+        // Spread by app name so the fleet doesn't report in the same minute.
+        $offset = crc32((string) config('log-central.app', config('app.name')));
+
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule) use ($offset): void {
+            $schedule->command('log-central:packages')->dailyAt(sprintf('%02d:%02d', 1 + $offset % 4, $offset % 60));
+        });
     }
 
     private function registerApiRecorder(): void

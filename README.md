@@ -77,6 +77,7 @@ php artisan vendor:publish --tag=log-central-config
 | `CENTRAL_LOG_API_RESPONSE` | `all` | Response bodies to include: `all`, `failed` (4xx/5xx only), or `none` |
 | `CENTRAL_LOG_API_PAYLOAD` | `all` | Request payloads to include: `all`, `failed` (4xx/5xx only), or `none` |
 | `CENTRAL_LOG_QUEUE` | default queue | Queue name for shipping jobs |
+| `CENTRAL_LOG_PACKAGES` | `true` | Send the installed package versions once a day for vulnerability checks |
 | `CENTRAL_LOG_VERIFY_SSL` | `true` | Set `false` only for a local or self-signed Log Central server |
 | `CENTRAL_LOG_ENABLED` | `true` | Master switch (set `false` in testing) |
 
@@ -101,6 +102,12 @@ Shipping only happens when `CENTRAL_LOG_ENABLED` is true **and** both the URL an
 | `Log::...()` on an unlisted channel | ❌ file only |
 | Request to a matched `api/*` path | ✅ as API request |
 | Exception silently swallowed without `report()` | ❌ |
+
+## Vulnerable packages
+
+Once a day the scheduler runs `log-central:packages`, which sends the name and version of every installed Composer package (from `vendor/composer/installed.json`) and npm package (from `package-lock.json`, when the file is deployed). Log Central checks them against known vulnerabilities and alerts on critical, high or actively exploited ones. Only names and versions leave the app.
+
+Needs the Laravel scheduler and Log Central v1.16.0+. To report now, run `php artisan log-central:packages`. To switch it off, set `CENTRAL_LOG_PACKAGES=false`.
 
 ## Scrubbing sensitive data
 
