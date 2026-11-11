@@ -72,6 +72,7 @@ it('captures request flow metrics', function () {
             && $row['response_size'] > 0
             && is_string($row['user_agent'])
             && is_string($row['referer'])
+            && $row['host'] === 'localhost'
             && $row['user'] === '{}';
     });
 });

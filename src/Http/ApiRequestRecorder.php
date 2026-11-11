@@ -87,6 +87,7 @@ class ApiRequestRecorder
                 'user_agent' => mb_strcut((string) $request->userAgent(), 0, self::MAX_AGENT_BYTES),
                 'referer' => mb_strcut((string) $request->headers->get('referer', ''), 0, self::MAX_AGENT_BYTES),
                 'response_size' => $this->responseSize($response),
+                'host' => $request->getHost(),
             ];
 
             if (count(self::$buffer) >= self::MAX_BUFFER) {

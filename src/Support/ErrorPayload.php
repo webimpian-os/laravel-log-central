@@ -50,6 +50,7 @@ class ErrorPayload
             'input' => self::boundedJsonObject(Scrubber::scrub(optional($request)->input() ?? [])),
             'hostname' => gethostname() ?: '',
             'entrypoint' => self::entrypoint(),
+            'trace_id' => TraceId::current(),
         ];
     }
 

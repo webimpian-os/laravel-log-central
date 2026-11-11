@@ -19,7 +19,8 @@ it('dispatches a shipping job when an exception is reported', function () {
             && $job->payload['user_id'] === 0
             && $job->payload['user'] === '{}'
             && $job->payload['input'] === '{}'
-            && in_array($job->payload['entrypoint'], ['http', 'console', 'queue'], true);
+            && in_array($job->payload['entrypoint'], ['http', 'console', 'queue'], true)
+            && strlen((string) $job->payload['trace_id']) === 16;
     });
 });
 
