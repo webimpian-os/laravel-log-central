@@ -47,12 +47,25 @@ it('releases for a later retry when shipping fails and attempts remain', functio
     $job->handle();
 });
 
+it('waits longer before each retry so a short outage loses nothing', function (int $attempt, int $wait) {
+    Http::preventStrayRequests();
+    Http::fake(['*' => Http::response('down', 503)]);
+
+    $queueJob = Mockery::mock(Job::class);
+    $queueJob->shouldReceive('attempts')->andReturn($attempt);
+    $queueJob->shouldReceive('release')->once()->with($wait);
+
+    $job = new ShipLogBatch([['message' => 'hello']]);
+    $job->setJob($queueJob);
+    $job->handle();
+})->with([[2, 30], [3, 60], [4, 120]]);
+
 it('drops the batch without throwing once retries are exhausted', function () {
     Http::preventStrayRequests();
     Http::fake(['*' => Http::response('down', 503)]);
 
     $queueJob = Mockery::mock(Job::class);
-    $queueJob->shouldReceive('attempts')->andReturn(3);
+    $queueJob->shouldReceive('attempts')->andReturn(5);
     $queueJob->shouldReceive('release')->never();
 
     $job = new ShipErrorToCentral(['exception' => 'RuntimeException']);

@@ -13,10 +13,11 @@ use Throwable;
 
 trait ShipsToLogCentral
 {
-    public int $tries = 3;
+    public int $tries = 5;
 
+    // Covers an outage of a few minutes.
     /** @var list<int> */
-    public array $backoff = [10, 60];
+    public array $backoff = [10, 30, 60, 120];
 
     /**
      * A transient failure is retried then dropped in silence so telemetry never
